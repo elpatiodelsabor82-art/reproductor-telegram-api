@@ -9,9 +9,7 @@ const apiId = parseInt(process.env.TG_API_ID);
 const apiHash = process.env.TG_API_HASH;
 const stringSession = new StringSession(process.env.TG_SESSION || ""); 
 
-const client = new TelegramClient(stringSession, apiId, apiHash, {
-    connectionRetries: 5,
-});
+const client = new TelegramClient(stringSession, apiId, apiHash, { connectionRetries: 5 });
 
 app.get('/stream/:channel/:messageId', async (req, res) => {
     let { channel, messageId } = req.params;
@@ -26,21 +24,18 @@ app.get('/stream/:channel/:messageId', async (req, res) => {
 
         const msg = messages[0];
         
-        // DEPURADOR: Esto te dirá en los logs qué tiene el objeto antes de fallar
-        console.log("DEBUG MSG MEDIA:", msg.media);
+        // DEBUG: Esto es lo que necesito que leas en los Logs de Render
+        console.log("TIPO DE MENSAJE:", msg.className);
+        console.log("¿TIENE MEDIA?:", !!msg.media);
 
-        // Si es un video, Telegram suele guardarlo en msg.media.document
-        const media = msg.media && msg.media.document ? msg.media.document : msg.media;
-
-        if (!media) {
-            return res.status(404).send("El mensaje no tiene contenido multimedia válido.");
+        if (!msg.media) {
+            return res.status(400).send("Este mensaje no tiene archivos adjuntos.");
         }
 
+        // Intentar descargar directamente
         res.setHeader('Content-Type', 'video/mp4');
-        res.setHeader('Accept-Ranges', 'bytes');
-
         const stream = client.iterDownload({
-            media: media,
+            media: msg, // Pasamos el objeto mensaje completo, es más seguro
             requestSize: 1024 * 1024,
         });
 
