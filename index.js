@@ -19,18 +19,22 @@ app.get('/stream/:channel/:messageId', async (req, res) => {
     try {
         if (!client.connected) await client.connect();
 
-        // 1. Obtener el canal (entidad) primero
         const entity = await client.getEntity(channel);
+        const messages = await client.getMessages(entity, { ids: [parseInt(messageId)] });
         
-        // 2. Obtener el mensaje completo con su media
-        const message = await client.getMessages(entity, { ids: [parseInt(messageId)] });
-        
-        if (!message || !message[0] || !message[0].media) {
-            return res.status(404).send("El mensaje no existe o no es un video.");
-        }
+        if (!messages || !messages[0]) return res.status(404).send("Mensaje no encontrado.");
 
-        // 3. Forzar acceso a la media del documento/video
-        const media = message[0].media;
+        const msg = messages[0];
+        
+        // DEPURADOR: Esto te dirá en los logs qué tiene el objeto antes de fallar
+        console.log("DEBUG MSG MEDIA:", msg.media);
+
+        // Si es un video, Telegram suele guardarlo en msg.media.document
+        const media = msg.media && msg.media.document ? msg.media.document : msg.media;
+
+        if (!media) {
+            return res.status(404).send("El mensaje no tiene contenido multimedia válido.");
+        }
 
         res.setHeader('Content-Type', 'video/mp4');
         res.setHeader('Accept-Ranges', 'bytes');
