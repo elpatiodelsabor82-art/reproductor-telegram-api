@@ -15,27 +15,39 @@ const client = new TelegramClient(stringSession, apiId, apiHash, {
 
 app.get('/stream/:channel/:messageId', async (req, res) => {
     let { channel, messageId } = req.params;
+    
     try {
         if (!client.connected) await client.connect();
+
+        // 1. Obtener el canal (entidad) primero
+        const entity = await client.getEntity(channel);
         
-        const message = await client.getMessages(channel, { ids: [parseInt(messageId)] });
+        // 2. Obtener el mensaje completo con su media
+        const message = await client.getMessages(entity, { ids: [parseInt(messageId)] });
         
-        if (!message || message.length === 0 || !message[0].media) {
-            return res.status(404).send("No se encontró el video.");
+        if (!message || !message[0] || !message[0].media) {
+            return res.status(404).send("El mensaje no existe o no es un video.");
         }
 
+        // 3. Forzar acceso a la media del documento/video
         const media = message[0].media;
+
         res.setHeader('Content-Type', 'video/mp4');
         res.setHeader('Accept-Ranges', 'bytes');
 
-        const stream = client.iterDownload({ media: media, requestSize: 1024 * 1024 });
+        const stream = client.iterDownload({
+            media: media,
+            requestSize: 1024 * 1024,
+        });
+
         for await (const chunk of stream) {
             res.write(chunk);
         }
         res.end();
+
     } catch (error) {
-        console.error("ERROR:", error);
-        res.status(500).send("Error: " + error.message);
+        console.error("❌ ERROR FINAL:", error);
+        res.status(500).send("Error crítico: " + error.message);
     }
 });
 
