@@ -8,6 +8,6 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "telegram": "^2.22.1"
+    "telegram": "^2.26.21"
   }
 }
